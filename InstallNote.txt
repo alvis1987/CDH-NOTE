@@ -1,0 +1,328 @@
+*********************
+one : Before Install*
+*********************
+------------------------------------------
+    1. System Required:
+------------------------------------------
+        Red Hat Enterprise linux and centos
+        - 5.7 64-bit
+        - 6.4 54-bit
+        - 6.4 in SE linux mode
+        - 6.5 64-bit
+
+------------------------------------------
+    2.Supported JDK Versions
+------------------------------------------
+        Cloudera supports Oracle JDK1.7.0_67 (CDH5)and Oracle JDK1.6.0_31
+        Page 33
+
+------------------------------------------
+    3.Supported Database
+------------------------------------------
+        - 3.1 - the database you use must be configured to support UTF8 character set encoding
+        - 3.2 - if you install a custom database ,you may need to enable UTF-8 coding, Page 36
+        - 3.3 - following database can support cloudera manager and its service
+        * MySQL - 5.0  5.1  5.5  and 5.6
+        * Oracle  11gR2
+        * PostgreSQL 8.4 9.1 9.2 9.3
+
+------------------------------------------
+    4.Networking and Security Requirements
+------------------------------------------
+        - 4.1 - cluster hosts must have a working network name resolution system and  correctly formatted /etc/hosts file .all cluster hosts
+        must have properly configured forward and reverse host resolution through DNS.
+
+        A properly formatted /etc/hosts file should be similar to the following example:
+
+        127.0.0.1     localhost.localdomain localhost
+        192.168.1.1  cluster-01.example.com    cluster-01
+        192.168.1.2  cluster-02.example.com    cluster-02
+        192.168.1.3  cluster-03.example.com    cluster-03
+        192.168.1.4  cluster-04.example.com    cluster-04
+
+        or my pratical works well as follow :
+
+        127.0.0.1     localhost.localdomain localhost
+        192.168.1.1  cluster-01    cluster-01
+        192.168.1.2  cluster-02    cluster-02
+        192.168.1.3  cluster-03    cluster-03
+        192.168.1.4  cluster-04    cluster-04
+
+        - 4.2 - cloudera manager server must have SSH access to the cluster hosts when you run the installation or upgrade wizard.
+        ** - cloudera manager uses SSH only during the initial install or upgrade. once the cluster is set up , you can disable root SSH
+        access or change the root password.
+        cloudera manager does not save SSH credentials ,and all credentials information is discarded when the installation is complete.
+
+        - 4.3 - No blocking is done by SElinux.
+        - 4.4 - IPv6 must be disabled.
+        - 4.5 - No blocking by iptables or firewalls.
+        - 4.6 - For RedHat and CentOS, the /etc/sysconfig/network file on each host must contain the hostname you have just set (or
+        verified) for that host.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ Summary about version is recommended by CDH5:
+
+    -*-  system :                  centos 6.5 64-bit
+    -*-  database:                 MySQL 5.5 or 5.6
+    -*-  JDK:                      JDK 1.7.0_67 is the only version supported
+    -*-  internet protocal:        CDH required IPv4 , IPv6  is not supported.
+    _*_  ports:                    the imformation about the port internel or externel in Page 18 if the cloudera installation.pdf
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+***********************
+Production deployments:|
+***********************
+---------------
+1. Required:
+---------------
+    - * - first manually install and configure a production database for the cloudera manager server and  hive metastore.
+
+    - * - there are two path to install:
+    Path B : Manually installation using cloudera Manager Packages
+
+        @1-:you install the Oracle JDK and Cloudera Manager Server packages on the Cloudera Manager Server host. You have two options for
+        installing Oracle JDK, Cloudera Manager Agent, CDH, and managed service software on cluster hosts: manually install it yourself or
+        use Cloudera Manager to automate installation
+
+    Path C : Manually installation using cloudera Manager Tarballs
+
+        @1-: you install the Oracle JDK, Cloudera Manager Server, and Cloudera Manager Agent software as tarballs and use Cloudera Manager to
+        automate installation of CDH and managed service software as parcels.
+
+---------------
+2. Install JDK
+---------------
+
+    version : JDK1.7.0_67 for CDH5
+    - 2.1 : install the same version of the oracle JDK on each host.
+    - 2.2 : install the JDK in /usr/java/jdk_version
+
+    install phase:
+    *1: download the jdk tar.gz file , and extract the file to  /usr/java/jdk1.7.0_nn , nn is the supported version.
+
+    *2: In /etc/default/bigtop-utils , set JAVA_HOME to the directory where the JDK is installed; for example:
+       export JAVA_HOME=/usr/java/default
+
+    *3: Symbolically link the directory where the JDK is installed to /usr/java/default ; for example:
+        ln -s /usr/java/jdk.1.7.0_nn /usr/java/default
+
+----------------
+3. Database
+----------------
+    *******************************who use database , and  the size the database will grow ***************************
+
+    -3.1- The Cloudera Manager Server, Activity Monitor, Reports Manager, Hive Metastore, Sentry Server, Cloudera
+    Navigator Audit Server, and Cloudera Navigator Metadata Server all require databases
+
+    -3.2- database size:
+        *- cloudera manager service -:
+        contains all the information about services you have configured and their role assignments, all configuration history, commands,
+        users, and running processes. This relatively small database (<100 MB) is the most important to back up.
+
+        - Activity Monitor - :
+        contain information about past activities, in large clusters , this database can grow large . configuring an Activity Monitor
+        database is only necessary if a mapreduce service is deployed.
+
+        - Reports Manager - :
+        tracks disk utilization and porcessing activities over time. Medium-sized.
+
+        *- Hive Metastore - :
+        contains Hive metadata, Relatively small.
+
+        - Sentry server - :
+        contains authorization metadata , Relatively small.
+    **************************************************************************************************************************
+    --------------------------
+    -3.3- database recommended:
+    --------------------------
+
+    1. Cloudera Manager supports deploying different types of databases in a single environment, but doing so can create unexpected
+    complications. Cloudera recommends choosing one supported database provider for all of the Cloudera databases.
+
+    2. in most cases, you should install databases and services on the same host.
+
+    ---------------------------------------------
+    -3.4- set up cloudera manager server database:
+    ---------------------------------------------
+
+    we don't use embedded database:
+    Preparing an Cloudera Manager Server External Database:
+
+        -*-  Run the scm_prepare_database.sh script on the host where the Cloudera Manager Server package is installed:
+        the location of this script is :
+                                <tarball root>/share/cmf/schema/scm_prepare_database.sh
+
+        _*_ The script prepares the database by:
+            • Creating the Cloudera Manager Server database configuration file.
+            • Creating a database for the Cloudera Manager Server to use. This is optional and is only completed if
+            options are specified.
+            • Setting up a user account for the Cloudera Manager Server. This is optional and is only completed if options
+
+        _*_ Remove the embedded PostgreSQL properties file if it exists:
+                                <tarball root>/etc/cloudera-scm-server/db.mgmt.properties
+
+        sample to execute the script:
+        sudo /usr/share/cmf/schema/scm_prepare_database.sh mysql -h myhost1.sf.cloudera.com -utemp -ptemp
+        --scm-host myhost2.sf.cloudera.com scm scm scm
+
+    ---------------------------------------------
+    -3.5- configure Mysql as the database:
+    ---------------------------------------------
+    cofigure file in Page 46 of cloudera installation.pdf
+
+
+    ---------------------------------------------
+    -3.6- install MySQL JDBC
+    ---------------------------------------------
+        **  MySQL 5.6 requires a connector version 5.1.26 or higher.
+
+        ** do not use the yum install command to install the MySQL connector package, because it installs the openJDK, and
+        then uses the Linux alternatives command to set the system JDK to be the openJDK.
+
+        **  cloudera recommends that you assign all roles that require databases on the same host and install the connector
+        on that host.
+
+        Install Phase:
+        1. Download the MySQL JDBC connector from http://www.mysql.com/downloads/connector/j/5.1.html.
+
+        2. Extract the JDBC driver JAR file from the downloaded file. For example:
+                    tar zxvf mysql-connector-java-5.1.31.tar.gz
+
+        3. add the JDBC driver, renamed, to the relevant server. For example:
+        $ sudo cp mysql-connector-java-5.1.31/mysql-connector-java-5.1.31-bin.jar /usr/share/java/mysql-connector-java.jar
+
+    ---------------------------------------------
+    -3.7- Backing Up MySQL Databases:
+    ---------------------------------------------
+    sample:
+        mysqldump -hhostname -uusername -ppassword database > /tmp/database-backup.sql
+
+
+----------------------------------
+4. Data Storage for monitor data
+----------------------------------
+    -- the service monitor and host monitor roles in the cloudera manager service store time series data ,health data and impala
+    query and yarn application metadata.
+
+    -- CDH5 stores host and service monitor data in a local datastore.
+
+    -- The Service Monitor stores time series data and health data, Impala query metadata, and YARN application metadata. By default,
+    the data is stored in /var/lib/cloudera-service-monitor/ on the Service Monitor host.
+
+    configure:
+    . firehose.storage.base.directory                         change the service monitor data store directory
+    . firehose_time_series_storage_bytes                      change the disk space use of Time-series metrics and health data(10G)
+    . firehose_impala_storage_bytes                           change the disk space use of Impala query metadata(1G)
+    . firehose_yarn_storage_bytes                             change the disk space use of yarn application metastore(1G)
+
+    -- The Host Monitor stores time series data and health data. By default, the data is stored in /var/lib/cloudera-host-monitor/
+    on the Host Monitor host.
+
+    configure:
+    . firehose_time_series_storage_bytes                      change the disk space use of Time-series metrics and health data(10G)
+
+    -- Host Monitor and Service Monitor Memory Configuration
+    Medium Clusters: Between 11 and 100 Hosts:
+                        Required                   Recommended
+    ava Heap Size        1 GB                          2 GB
+    Non-Java Memory      2 GB                          4 GB
+
+
+||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+
+---------------------------------
+start to install cloudera |
+---------------------------------
+Before you Begin
+
+1. install and configure database
+
+2. if you are using hue or installing CDH5 using packages,python2.6 or 2.7 must be available or already installed.
+
+3. install the cloudera manager server and agent.
+
+    3.1- tarballs contain both the cloudera manager server and cloudera manager agent in a single file.
+
+    3.2- copy the tarball and unpack them on all hosts on which you intend to install cloudera manager server and agent
+    -------------------------------------
+        sudo mkdir /opt/cloudera-manager
+        tar xzf cloudera-manager*.tar.gz -C /opt/cloudera-manager
+
+    3.3- The files are extracted to a subdirectory named according to the Cloudera Manager version being extracted.
+    For example, files could extract to /opt/cloudera-manager/cm-5.0/ .
+
+4. create user
+    The Cloudera Manager Server and managed services need a user account to complete tasks. When installing Cloudera Manager
+    from tarballs, you much create this user account on all hosts manually
+    --------------------------------------------------
+    useradd --system --home=/opt/cloudera-manager/cm-5.0/run/cloudera-scm-server --no-create-home --shell=/bin/false
+    --comment "Cloudera SCM User" cloudera-scm
+
+    **warning:
+    ensure the --home argument path matches your environment.
+
+5. Configure Cloudera Manager Agents
+    On every Cloudera Manager Agent host, configure the Cloudera Manager Agent to point to the Cloudera Manager
+    Server by setting the following properties in the tarball root/etc/cloudera-scm-agent/config.ini
+
+    Property            Description
+    server_host         Name of the host where Cloudera Manager Server is running.
+    server_port         Port on the host where Cloudera Manager Server is running.
+
+6. Configure a Database for the Cloudera Manager Server
+
+7. Create a Parcel Repository Directory
+    ------------------------------------------------
+    mkdir -p /opt/cloudera/parcel-repo
+    chown cloudera-scm:cloudera-scm /opt/cloudera/parcel-repo
+
+8. start cloudera manager server
+    As root ,do follow:
+    --------------------------------------------------
+    sudo tarball root/etc/init.d/cloudera-scm-server start
+
+    To start the Cloudera Manager Server automatically after a reboot:
+
+    1. On the Cloudera Manager Server host, open the /etc/init.d/cloudera-scm-server file and change the value of
+    CMF_DEFAULTS from ${CMF_DEFAULTS:-/etc/default} to tarball root/etc/default .
+
+    2. Run the following commands on the Cloudera Manager Server host:
+    --------------------------------------------------------------
+    $ cp tarball root/etc/init.d/cloudera-scm-server /etc/init.d/cloudera-scm-server
+    $ chkconfig cloudera-scm-server on
+
+9. start cloudera manager agent.
+    to start the Cloudera Manager Agent, run this command on each Agent host:
+    -----------------------------------------------------------
+    $ sudo tarball root/etc/init.d/cloudera-scm-agent start
+
+    to start the Cloudera Manager Agents automatically after a reboot:
+    $ cp tarball root/etc/init.d/cloudera-scm-agent /etc/init.d/cloudera-scm-agent
+    chkconfig cloudera-scm-agent on
+
+
+
+** about resource manager
+
+use static resource pool and integrate  yarn with impala .
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
